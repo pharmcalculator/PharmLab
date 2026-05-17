@@ -1,0 +1,1965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>LabOS — Biomedical Lab Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e14;
+    --surface: #111720;
+    --surface2: #1a2130;
+    --surface3: #1f2a3d;
+    --border: #2a3a52;
+    --border2: #344a68;
+    --accent: #00d4aa;
+    --accent2: #0099ff;
+    --accent3: #7c6af7;
+    --warn: #f59e0b;
+    --danger: #ef4444;
+    --success: #22c55e;
+    --text: #e2eaf4;
+    --text2: #8ba3c2;
+    --text3: #4d6484;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+    --r: 10px;
+    --r2: 14px;
+    --nav-h: 64px;
+    --header-h: 56px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    height: 100dvh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-width: 430px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  /* ── GRID BG ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: linear-gradient(rgba(0,212,170,.03) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(0,212,170,.03) 1px, transparent 1px);
+    background-size: 24px 24px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    height: var(--header-h);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(10,14,20,.92);
+    backdrop-filter: blur(12px);
+    z-index: 100;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .logo {
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--text3); font-weight: 400; }
+  .header-right { display: flex; gap: 8px; align-items: center; }
+  .avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent3), var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 600; font-family: var(--mono);
+    color: white;
+  }
+  .notif-dot {
+    width: 8px; height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    border: 2px solid var(--bg);
+    position: absolute;
+    top: -1px; right: -1px;
+  }
+
+  /* ── MAIN SCROLL ── */
+  .main {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    position: relative;
+    z-index: 1;
+    padding-bottom: calc(var(--nav-h) + 16px);
+  }
+  .main::-webkit-scrollbar { display: none; }
+
+  /* ── SCREENS ── */
+  .screen { display: none; padding: 16px; animation: fadeIn .2s ease; }
+  .screen.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  /* ── BOTTOM NAV ── */
+  .nav {
+    height: var(--nav-h);
+    display: flex;
+    border-top: 1px solid var(--border);
+    background: rgba(10,14,20,.96);
+    backdrop-filter: blur(16px);
+    flex-shrink: 0;
+    z-index: 100;
+    position: relative;
+  }
+  .nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    cursor: pointer;
+    transition: all .15s;
+    position: relative;
+    color: var(--text3);
+    font-size: 10px;
+    font-family: var(--mono);
+    letter-spacing: .4px;
+    text-transform: uppercase;
+  }
+  .nav-item svg { width: 20px; height: 20px; transition: all .15s; }
+  .nav-item.active { color: var(--accent); }
+  .nav-item.active::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 20%; right: 20%;
+    height: 2px;
+    background: var(--accent);
+    border-radius: 0 0 4px 4px;
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  /* ── SECTION TITLE ── */
+  .section-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 10px;
+    padding-left: 2px;
+  }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r2);
+    padding: 14px;
+    margin-bottom: 10px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color .15s;
+  }
+  .card:active { border-color: var(--border2); }
+  .card-accent { border-left: 3px solid var(--accent); }
+  .card-warn { border-left: 3px solid var(--warn); }
+  .card-purple { border-left: 3px solid var(--accent3); }
+  .card-blue { border-left: 3px solid var(--accent2); }
+
+  /* ── HOME SCREEN ── */
+  .home-hero {
+    background: linear-gradient(135deg, var(--surface2) 0%, var(--surface3) 100%);
+    border: 1px solid var(--border);
+    border-radius: var(--r2);
+    padding: 20px;
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .home-hero::after {
+    content: '';
+    position: absolute;
+    right: -20px; top: -20px;
+    width: 120px; height: 120px;
+    background: radial-gradient(circle, rgba(0,212,170,.15) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-greeting {
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--text3);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .hero-name {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+  .hero-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .hero-stat {
+    background: rgba(0,0,0,.3);
+    border-radius: 8px;
+    padding: 10px 8px;
+    text-align: center;
+  }
+  .hero-stat-val {
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 3px;
+  }
+  .hero-stat-lbl {
+    font-size: 9px;
+    color: var(--text3);
+    letter-spacing: .8px;
+    text-transform: uppercase;
+  }
+
+  .quick-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .quick-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r2);
+    padding: 16px 14px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: all .15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .quick-btn:active { transform: scale(.97); }
+  .quick-btn .qb-icon {
+    font-size: 22px;
+    line-height: 1;
+  }
+  .quick-btn .qb-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .quick-btn .qb-sub {
+    font-size: 10px;
+    font-family: var(--mono);
+    color: var(--text3);
+  }
+  .quick-btn.green { border-top: 2px solid var(--accent); }
+  .quick-btn.blue { border-top: 2px solid var(--accent2); }
+  .quick-btn.purple { border-top: 2px solid var(--accent3); }
+  .quick-btn.orange { border-top: 2px solid var(--warn); }
+
+  .activity-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .activity-item:last-child { border-bottom: none; }
+  .act-icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .act-text { flex: 1; }
+  .act-title { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 2px; }
+  .act-sub { font-size: 11px; color: var(--text3); font-family: var(--mono); }
+  .act-time { font-size: 10px; color: var(--text3); font-family: var(--mono); margin-top: 2px; }
+
+  /* ── PROTOCOLS SCREEN ── */
+  .search-bar {
+    display: flex;
+    align-items: center;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 10px 14px;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .search-bar input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+  }
+  .search-bar input::placeholder { color: var(--text3); }
+
+  .tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 14px;
+    overflow-x: auto;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-family: var(--mono);
+    cursor: pointer;
+    white-space: nowrap;
+    border: 1px solid var(--border);
+    color: var(--text3);
+    background: var(--surface);
+    transition: all .15s;
+  }
+  .tab.active {
+    background: var(--accent);
+    color: var(--bg);
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+
+  .protocol-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r2);
+    padding: 14px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: all .15s;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .protocol-card:active { border-color: var(--accent); transform: scale(.99); }
+  .proto-icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .proto-info { flex: 1; }
+  .proto-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+  .proto-meta { display: flex; gap: 8px; align-items: center; margin-bottom: 4px; }
+  .proto-tag {
+    font-size: 9px;
+    font-family: var(--mono);
+    letter-spacing: .6px;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 10px;
+    background: var(--surface3);
+    color: var(--text2);
+  }
+  .proto-tag.green { background: rgba(0,212,170,.15); color: var(--accent); }
+  .proto-tag.blue { background: rgba(0,153,255,.15); color: var(--accent2); }
+  .proto-tag.purple { background: rgba(124,106,247,.15); color: var(--accent3); }
+  .proto-desc { font-size: 11px; color: var(--text3); line-height: 1.5; }
+
+  /* ── PROTOCOL DETAIL ── */
+  .detail-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 200;
+    overflow-y: auto;
+    transform: translateX(100%);
+    transition: transform .25s ease;
+    max-width: 430px;
+    margin: 0 auto;
+  }
+  .detail-screen.open { transform: none; }
+  .detail-header {
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(10,14,20,.9);
+    backdrop-filter: blur(12px);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .back-btn {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .detail-title { font-size: 16px; font-weight: 600; flex: 1; }
+  .detail-body { padding: 16px; }
+
+  .step-item {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 16px;
+    position: relative;
+  }
+  .step-item:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: 15px; top: 32px; bottom: -16px;
+    width: 1px;
+    background: var(--border);
+  }
+  .step-num {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent);
+    flex-shrink: 0;
+    background: var(--bg);
+    position: relative;
+    z-index: 1;
+  }
+  .step-content { flex: 1; padding-top: 4px; }
+  .step-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .step-detail { font-size: 12px; color: var(--text3); line-height: 1.6; }
+  .step-note {
+    background: rgba(245,158,11,.1);
+    border-left: 3px solid var(--warn);
+    border-radius: 0 6px 6px 0;
+    padding: 8px 10px;
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--warn);
+    font-family: var(--mono);
+  }
+
+  /* ── CALCULATIONS SCREEN ── */
+  .calc-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .calc-tool {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r2);
+    padding: 16px 14px;
+    cursor: pointer;
+    transition: all .15s;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .calc-tool:active { border-color: var(--accent2); transform: scale(.97); }
+  .calc-icon { font-size: 24px; }
+  .calc-name { font-size: 13px; font-weight: 600; color: var(--text); }
+  .calc-desc { font-size: 10px; font-family: var(--mono); color: var(--text3); }
+
+  .calc-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r2);
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .calc-panel-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 14px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .field-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+    align-items: center;
+  }
+  .field-label {
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--text3);
+    width: 90px;
+    flex-shrink: 0;
+  }
+  .field-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    outline: none;
+    transition: border-color .15s;
+  }
+  .field-input:focus { border-color: var(--accent2); }
+  .field-select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    outline: none;
+    width: 80px;
+    flex-shrink: 0;
+  }
+  .btn {
+    width: 100%;
+    padding: 12px;
+    border-radius: var(--r);
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    letter-spacing: .5px;
+    transition: all .15s;
+  }
+  .btn:active { transform: scale(.97); }
+  .btn-primary {
+    background: var(--accent);
+    color: var(--bg);
+  }
+  .btn-primary:hover { filter: brightness(1.1); }
+  .btn-secondary {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .result-box {
+    background: var(--bg);
+    border: 1px solid var(--accent);
+    border-radius: var(--r);
+    padding: 12px 16px;
+    margin-top: 10px;
+    text-align: center;
+  }
+  .result-val {
+    font-family: var(--mono);
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 2px;
+  }
+  .result-label { font-size: 11px; color: var(--text3); font-family: var(--mono); }
+
+  /* ── SAMPLES SCREEN ── */
+  .sample-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .sample-stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 12px 10px;
+    text-align: center;
+  }
+  .s-val {
+    font-family: var(--mono);
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+  .s-lbl { font-size: 9px; color: var(--text3); letter-spacing: .6px; text-transform: uppercase; }
+
+  .sample-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r2);
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: border-color .15s;
+  }
+  .sample-item:active { border-color: var(--accent); }
+  .sample-id {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent);
+    background: rgba(0,212,170,.1);
+    padding: 4px 8px;
+    border-radius: 6px;
+    flex-shrink: 0;
+    min-width: 70px;
+    text-align: center;
+  }
+  .sample-info { flex: 1; }
+  .sample-name { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 2px; }
+  .sample-meta { font-size: 11px; color: var(--text3); font-family: var(--mono); }
+  .sample-status {
+    font-size: 9px;
+    font-family: var(--mono);
+    padding: 3px 8px;
+    border-radius: 10px;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+  .status-active { background: rgba(0,212,170,.15); color: var(--accent); }
+  .status-frozen { background: rgba(0,153,255,.15); color: var(--accent2); }
+  .status-used { background: rgba(77,100,132,.2); color: var(--text3); }
+  .status-warn { background: rgba(245,158,11,.15); color: var(--warn); }
+
+  .fab {
+    position: fixed;
+    bottom: calc(var(--nav-h) + 16px);
+    right: 16px;
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: none;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+    color: var(--bg);
+    box-shadow: 0 4px 16px rgba(0,212,170,.35);
+    z-index: 50;
+    transition: all .15s;
+  }
+  .fab:active { transform: scale(.93); }
+
+  /* ── SCAN SCREEN ── */
+  .scan-hero {
+    background: linear-gradient(135deg, rgba(124,106,247,.15), rgba(0,153,255,.1));
+    border: 1px solid rgba(124,106,247,.3);
+    border-radius: var(--r2);
+    padding: 24px;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .scan-hero h2 { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+  .scan-hero p { font-size: 12px; color: var(--text3); line-height: 1.6; }
+  .scan-icon { font-size: 48px; margin-bottom: 12px; display: block; }
+
+  .upload-zone {
+    border: 2px dashed var(--border2);
+    border-radius: var(--r2);
+    padding: 32px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all .2s;
+    margin-bottom: 14px;
+    position: relative;
+    overflow: hidden;
+  }
+  .upload-zone:hover { border-color: var(--accent3); }
+  .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .upload-icon { font-size: 36px; margin-bottom: 10px; }
+  .upload-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .upload-sub { font-size: 11px; color: var(--text3); font-family: var(--mono); }
+
+  .ai-chat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r2);
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+  .ai-chat-header {
+    background: var(--surface2);
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .ai-indicator {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 6px var(--accent);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+  .ai-chat-title { font-size: 12px; font-family: var(--mono); color: var(--text2); }
+  .ai-messages { padding: 14px; max-height: 280px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+  .ai-messages::-webkit-scrollbar { display: none; }
+  .msg { max-width: 85%; padding: 10px 12px; border-radius: 12px; font-size: 12px; line-height: 1.6; }
+  .msg-ai {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    align-self: flex-start;
+    color: var(--text);
+    border-radius: 4px 12px 12px 12px;
+  }
+  .msg-user {
+    background: var(--accent);
+    color: var(--bg);
+    align-self: flex-end;
+    font-weight: 500;
+    border-radius: 12px 4px 12px 12px;
+  }
+  .ai-input-row {
+    display: flex;
+    padding: 10px 14px;
+    gap: 8px;
+    border-top: 1px solid var(--border);
+  }
+  .ai-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    outline: none;
+  }
+  .ai-input:focus { border-color: var(--accent3); }
+  .send-btn {
+    width: 36px; height: 36px;
+    background: var(--accent3);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    transition: all .15s;
+    flex-shrink: 0;
+    color: white;
+  }
+  .send-btn:active { transform: scale(.9); }
+
+  .typing-indicator {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    padding: 6px 0;
+  }
+  .typing-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--text3);
+    animation: bounce .8s infinite;
+  }
+  .typing-dot:nth-child(2) { animation-delay: .15s; }
+  .typing-dot:nth-child(3) { animation-delay: .3s; }
+  @keyframes bounce { 0%,80%,100% { transform: none; } 40% { transform: translateY(-4px); } }
+
+  /* ── TEAM SCREEN ── */
+  .team-header-card {
+    background: linear-gradient(135deg, var(--surface2), var(--surface3));
+    border: 1px solid var(--border);
+    border-radius: var(--r2);
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .team-name { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+  .team-meta { font-size: 11px; color: var(--text3); font-family: var(--mono); margin-bottom: 14px; }
+  .team-members-row {
+    display: flex;
+    align-items: center;
+    gap: -8px;
+  }
+  .team-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 2px solid var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: white;
+    margin-right: -8px;
+  }
+  .member-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r2);
+    padding: 14px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .member-info { flex: 1; }
+  .member-name { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 2px; }
+  .member-role { font-size: 11px; color: var(--text3); font-family: var(--mono); }
+  .member-badge {
+    font-size: 9px;
+    font-family: var(--mono);
+    padding: 3px 8px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+  }
+  .badge-lead { background: rgba(0,212,170,.15); color: var(--accent); }
+  .badge-senior { background: rgba(124,106,247,.15); color: var(--accent3); }
+  .badge-jr { background: rgba(77,100,132,.2); color: var(--text3); }
+  .badge-guest { background: rgba(245,158,11,.15); color: var(--warn); }
+
+  .shared-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    margin-bottom: 8px;
+  }
+  .shared-icon {
+    width: 34px; height: 34px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .shared-info { flex: 1; }
+  .shared-name { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 1px; }
+  .shared-meta { font-size: 10px; color: var(--text3); font-family: var(--mono); }
+  .avatar-stack {
+    display: flex;
+  }
+  .avatar-stack .mini-av {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    border: 1px solid var(--bg);
+    margin-right: -5px;
+    font-size: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: white;
+    font-weight: 600;
+  }
+
+  /* ── REAGENT/BUFFER CALC ── */
+  .recipe-steps {
+    background: var(--surface2);
+    border-radius: var(--r);
+    padding: 12px 14px;
+    margin-top: 10px;
+  }
+  .recipe-step {
+    display: flex;
+    gap: 10px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    font-family: var(--mono);
+  }
+  .recipe-step:last-child { border-bottom: none; }
+  .recipe-step .rs-num { color: var(--accent); min-width: 20px; }
+  .recipe-step .rs-text { color: var(--text2); }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: calc(var(--nav-h) + 80px);
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--surface3);
+    border: 1px solid var(--border2);
+    border-radius: var(--r);
+    padding: 10px 18px;
+    font-size: 13px;
+    font-family: var(--mono);
+    color: var(--accent);
+    z-index: 999;
+    opacity: 0;
+    transition: all .25s;
+    white-space: nowrap;
+    pointer-events: none;
+    max-width: 320px;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* ── ADD SAMPLE MODAL ── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.7);
+    backdrop-filter: blur(4px);
+    z-index: 300;
+    display: flex;
+    align-items: flex-end;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s;
+    max-width: 430px;
+    margin: 0 auto;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r2) var(--r2) 0 0;
+    padding: 20px 16px 32px;
+    width: 100%;
+    transform: translateY(100%);
+    transition: transform .25s ease;
+  }
+  .modal-overlay.open .modal { transform: none; }
+  .modal-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+  .modal-close { font-size: 20px; cursor: pointer; color: var(--text3); }
+
+  /* ── TROUBLESHOOT ── */
+  .trouble-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r2);
+    padding: 14px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .trouble-item:active { border-color: var(--danger); }
+  .trouble-q { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+  .trouble-cat { font-size: 10px; font-family: var(--mono); color: var(--text3); text-transform: uppercase; letter-spacing: .6px; }
+  .trouble-ans {
+    font-size: 12px;
+    color: var(--text3);
+    line-height: 1.6;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    display: none;
+  }
+  .trouble-item.open .trouble-ans { display: block; }
+
+  /* loading overlay */
+  .loading-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(10,14,20,.85);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    z-index: 10;
+    border-radius: var(--r2);
+  }
+  .spinner {
+    width: 32px; height: 32px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent3);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-family: var(--mono); font-size: 11px; color: var(--text3); letter-spacing: .5px; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="logo">Lab<span>OS</span></div>
+  <div class="header-right">
+    <div style="position:relative">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="1.5" style="display:block">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+      </svg>
+      <div class="notif-dot"></div>
+    </div>
+    <div class="avatar">AK</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- ══ HOME ══ -->
+  <div class="screen active" id="screen-home">
+    <div class="home-hero">
+      <div class="hero-greeting">Good morning</div>
+      <div class="hero-name">Dr. Aisha Kapoor</div>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-val">12</div>
+          <div class="hero-stat-lbl">Active</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-val">47</div>
+          <div class="hero-stat-lbl">Samples</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-val">5</div>
+          <div class="hero-stat-lbl">Team</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">Quick Access</div>
+    <div class="quick-grid">
+      <div class="quick-btn green" onclick="nav('protocols')">
+        <div class="qb-icon">🧬</div>
+        <div class="qb-title">Protocols</div>
+        <div class="qb-sub">12 available</div>
+      </div>
+      <div class="quick-btn blue" onclick="nav('calc')">
+        <div class="qb-icon">⚗️</div>
+        <div class="qb-title">Calculations</div>
+        <div class="qb-sub">Buffer · Dilution · MW</div>
+      </div>
+      <div class="quick-btn purple" onclick="nav('scan')">
+        <div class="qb-icon">📷</div>
+        <div class="qb-title">Scan Protocol</div>
+        <div class="qb-sub">AI-powered</div>
+      </div>
+      <div class="quick-btn orange" onclick="nav('samples')">
+        <div class="qb-icon">🧪</div>
+        <div class="qb-title">Samples</div>
+        <div class="qb-sub">47 tracked</div>
+      </div>
+    </div>
+
+    <div class="card card-warn" style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:20px">⚠️</span>
+        <div>
+          <div style="font-size:12px;font-weight:600;margin-bottom:2px">3 samples expiring in 48h</div>
+          <div style="font-size:11px;color:var(--text3);font-family:var(--mono)">SMP-041, SMP-043, SMP-047 · −80°C freezer</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">Recent Activity</div>
+    <div class="card" style="padding:0 14px">
+      <div class="activity-item">
+        <div class="act-icon" style="background:rgba(0,212,170,.1)">🧬</div>
+        <div class="act-text">
+          <div class="act-title">Western Blot protocol updated</div>
+          <div class="act-sub">by Marcus Chen · v3.2</div>
+        </div>
+        <div class="act-time">2h ago</div>
+      </div>
+      <div class="activity-item">
+        <div class="act-icon" style="background:rgba(0,153,255,.1)">🧪</div>
+        <div class="act-text">
+          <div class="act-title">14 new samples registered</div>
+          <div class="act-sub">SMP-048 → SMP-061</div>
+        </div>
+        <div class="act-time">5h ago</div>
+      </div>
+      <div class="activity-item">
+        <div class="act-icon" style="background:rgba(124,106,247,.1)">📷</div>
+        <div class="act-text">
+          <div class="act-title">Protocol scanned & imported</div>
+          <div class="act-sub">Immunofluorescence staining</div>
+        </div>
+        <div class="act-time">1d ago</div>
+      </div>
+      <div class="activity-item">
+        <div class="act-icon" style="background:rgba(245,158,11,.1)">👤</div>
+        <div class="act-text">
+          <div class="act-title">Sara Liu joined the lab</div>
+          <div class="act-sub">Role: Junior Researcher</div>
+        </div>
+        <div class="act-time">2d ago</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PROTOCOLS ══ -->
+  <div class="screen" id="screen-protocols">
+    <div class="search-bar">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" placeholder="Search protocols..." id="proto-search" oninput="filterProtocols(this.value)">
+    </div>
+    <div class="tabs">
+      <div class="tab active" onclick="setProtoTab(this,'all')">All</div>
+      <div class="tab" onclick="setProtoTab(this,'cell')">Cell Biology</div>
+      <div class="tab" onclick="setProtoTab(this,'molecular')">Molecular</div>
+      <div class="tab" onclick="setProtoTab(this,'protein')">Protein</div>
+      <div class="tab" onclick="setProtoTab(this,'imaging')">Imaging</div>
+    </div>
+    <div id="proto-list">
+      <!-- filled by JS -->
+    </div>
+  </div>
+
+  <!-- ══ CALCULATIONS ══ -->
+  <div class="screen" id="screen-calc">
+    <div id="calc-home">
+      <div class="section-label">Buffer & Reagent Prep</div>
+      <div class="calc-grid">
+        <div class="calc-tool" onclick="showCalc('buffer')">
+          <div class="calc-icon">🧴</div>
+          <div class="calc-name">Buffer Maker</div>
+          <div class="calc-desc">PBS, TBS, HEPES...</div>
+        </div>
+        <div class="calc-tool" onclick="showCalc('dilution')">
+          <div class="calc-icon">💧</div>
+          <div class="calc-name">Dilution</div>
+          <div class="calc-desc">C₁V₁ = C₂V₂</div>
+        </div>
+        <div class="calc-tool" onclick="showCalc('molar')">
+          <div class="calc-icon">⚖️</div>
+          <div class="calc-name">Molarity</div>
+          <div class="calc-desc">Mass → moles → molarity</div>
+        </div>
+        <div class="calc-tool" onclick="showCalc('od')">
+          <div class="calc-icon">🔬</div>
+          <div class="calc-name">OD Calculator</div>
+          <div class="calc-desc">Cell density & conc.</div>
+        </div>
+      </div>
+      <div class="section-label">Unit Converters</div>
+      <div class="calc-grid">
+        <div class="calc-tool" onclick="showCalc('conc')">
+          <div class="calc-icon">🔄</div>
+          <div class="calc-name">Conc. Converter</div>
+          <div class="calc-desc">% · mg/mL · M · ppm</div>
+        </div>
+        <div class="calc-tool" onclick="showCalc('temp')">
+          <div class="calc-icon">🌡️</div>
+          <div class="calc-name">Temp Converter</div>
+          <div class="calc-desc">°C · °F · K</div>
+        </div>
+        <div class="calc-tool" onclick="showCalc('centrifuge')">
+          <div class="calc-icon">⭕</div>
+          <div class="calc-name">Centrifuge</div>
+          <div class="calc-desc">RPM ↔ RCF (× g)</div>
+        </div>
+        <div class="calc-tool" onclick="showCalc('pcr')">
+          <div class="calc-icon">🧫</div>
+          <div class="calc-name">PCR Setup</div>
+          <div class="calc-desc">Master mix volumes</div>
+        </div>
+      </div>
+    </div>
+    <div id="calc-panel" style="display:none"></div>
+  </div>
+
+  <!-- ══ SAMPLES ══ -->
+  <div class="screen" id="screen-samples">
+    <div class="sample-grid">
+      <div class="sample-stat"><div class="s-val">47</div><div class="s-lbl">Total</div></div>
+      <div class="sample-stat"><div class="s-val" style="color:var(--accent)">31</div><div class="s-lbl">Active</div></div>
+      <div class="sample-stat"><div class="s-val" style="color:var(--warn)">3</div><div class="s-lbl">Expiring</div></div>
+    </div>
+    <div class="search-bar">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" placeholder="Search samples..." oninput="filterSamples(this.value)" id="sample-search">
+    </div>
+    <div id="sample-list"><!-- filled by JS --></div>
+  </div>
+
+  <!-- ══ SCAN ══ -->
+  <div class="screen" id="screen-scan">
+    <div class="scan-hero">
+      <span class="scan-icon">🔬</span>
+      <h2>AI Protocol Scanner</h2>
+      <p>Scan or upload a written/printed protocol and our AI will automatically convert it into a structured, digital protocol ready to share with your team.</p>
+    </div>
+
+    <div class="upload-zone" id="upload-zone" onclick="triggerUpload()">
+      <input type="file" id="file-input" accept="image/*" onchange="handleFileUpload(this)">
+      <div class="upload-icon">📄</div>
+      <div class="upload-title">Tap to upload protocol image</div>
+      <div class="upload-sub">JPG, PNG, PDF · Camera or gallery</div>
+    </div>
+
+    <div class="ai-chat" id="ai-chat-panel">
+      <div class="ai-chat-header">
+        <div class="ai-indicator"></div>
+        <div class="ai-chat-title">LabOS AI — Protocol Assistant</div>
+      </div>
+      <div class="ai-messages" id="ai-messages">
+        <div class="msg msg-ai">Hello! I can help you scan protocols, answer technique questions, or generate buffer recipes. Upload an image or describe a protocol to get started.</div>
+      </div>
+      <div class="ai-input-row">
+        <input class="ai-input" id="ai-input" type="text" placeholder="Describe a protocol or ask anything..." onkeydown="if(event.key==='Enter')sendAI()">
+        <button class="send-btn" onclick="sendAI()">➤</button>
+      </div>
+    </div>
+
+    <div style="margin-bottom:14px">
+      <div class="section-label">Quick Prompts</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <div class="tab" onclick="quickPrompt('Generate a standard Western Blot protocol with steps')">WB Protocol</div>
+        <div class="tab" onclick="quickPrompt('How do I prepare a 1× PBS buffer from 10× stock?')">PBS Buffer</div>
+        <div class="tab" onclick="quickPrompt('Write a 5-step immunofluorescence staining protocol for adherent cells')">IF Staining</div>
+        <div class="tab" onclick="quickPrompt('Common causes for high background in Western Blot and how to fix them')">Troubleshoot WB</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TEAM ══ -->
+  <div class="screen" id="screen-team">
+    <div class="team-header-card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <div style="font-size:24px">🏛️</div>
+        <div>
+          <div class="team-name">Kapoor Research Lab</div>
+          <div class="team-meta">Molecular Oncology · Stanford BioSci · Room 4B-12</div>
+        </div>
+      </div>
+      <div class="team-members-row">
+        <div class="team-avatar" style="background:linear-gradient(135deg,#00d4aa,#0099ff)">AK</div>
+        <div class="team-avatar" style="background:linear-gradient(135deg,#7c6af7,#0099ff)">MC</div>
+        <div class="team-avatar" style="background:linear-gradient(135deg,#f59e0b,#ef4444)">SL</div>
+        <div class="team-avatar" style="background:linear-gradient(135deg,#22c55e,#0099ff)">JR</div>
+        <div class="team-avatar" style="background:linear-gradient(135deg,#7c6af7,#f59e0b)">PT</div>
+        <div style="width:36px;height:36px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text3);font-family:var(--mono)">+2</div>
+      </div>
+    </div>
+
+    <div class="section-label">Team Members</div>
+    <div id="team-members">
+      <div class="member-card">
+        <div class="team-avatar" style="background:linear-gradient(135deg,#00d4aa,#0099ff);width:40px;height:40px;flex-shrink:0">AK</div>
+        <div class="member-info">
+          <div class="member-name">Dr. Aisha Kapoor</div>
+          <div class="member-role">Principal Investigator · akapoor@stanford.edu</div>
+        </div>
+        <div class="member-badge badge-lead">Lead</div>
+      </div>
+      <div class="member-card">
+        <div class="team-avatar" style="background:linear-gradient(135deg,#7c6af7,#0099ff);width:40px;height:40px;flex-shrink:0">MC</div>
+        <div class="member-info">
+          <div class="member-name">Marcus Chen</div>
+          <div class="member-role">Sr. Researcher · mchen@stanford.edu</div>
+        </div>
+        <div class="member-badge badge-senior">Senior</div>
+      </div>
+      <div class="member-card">
+        <div class="team-avatar" style="background:linear-gradient(135deg,#22c55e,#0099ff);width:40px;height:40px;flex-shrink:0">JR</div>
+        <div class="member-info">
+          <div class="member-name">Juno Reyes</div>
+          <div class="member-role">Postdoc · jreyes@stanford.edu</div>
+        </div>
+        <div class="member-badge badge-senior">Senior</div>
+      </div>
+      <div class="member-card">
+        <div class="team-avatar" style="background:linear-gradient(135deg,#f59e0b,#ef4444);width:40px;height:40px;flex-shrink:0">SL</div>
+        <div class="member-info">
+          <div class="member-name">Sara Liu</div>
+          <div class="member-role">Jr. Researcher · sliu@stanford.edu</div>
+        </div>
+        <div class="member-badge badge-jr">Junior</div>
+      </div>
+      <div class="member-card">
+        <div class="team-avatar" style="background:linear-gradient(135deg,#7c6af7,#f59e0b);width:40px;height:40px;flex-shrink:0">PT</div>
+        <div class="member-info">
+          <div class="member-name">Paul Tennyson</div>
+          <div class="member-role">PhD Student · ptennyson@stanford.edu</div>
+        </div>
+        <div class="member-badge badge-jr">PhD</div>
+      </div>
+    </div>
+
+    <div class="section-label" style="margin-top:16px">Shared Resources</div>
+    <div class="shared-item">
+      <div class="shared-icon" style="background:rgba(0,212,170,.1)">🧬</div>
+      <div class="shared-info">
+        <div class="shared-name">Lab Protocol Library</div>
+        <div class="shared-meta">12 protocols · last updated 2h ago</div>
+      </div>
+      <div class="avatar-stack">
+        <div class="mini-av" style="background:linear-gradient(135deg,#00d4aa,#0099ff)">AK</div>
+        <div class="mini-av" style="background:linear-gradient(135deg,#7c6af7,#0099ff)">MC</div>
+        <div class="mini-av" style="background:linear-gradient(135deg,#22c55e,#0099ff)">JR</div>
+      </div>
+    </div>
+    <div class="shared-item">
+      <div class="shared-icon" style="background:rgba(0,153,255,.1)">🧪</div>
+      <div class="shared-info">
+        <div class="shared-name">Sample Inventory</div>
+        <div class="shared-meta">47 samples · shared with all</div>
+      </div>
+      <div class="avatar-stack">
+        <div class="mini-av" style="background:linear-gradient(135deg,#f59e0b,#ef4444)">SL</div>
+        <div class="mini-av" style="background:linear-gradient(135deg,#7c6af7,#f59e0b)">PT</div>
+      </div>
+    </div>
+    <div class="shared-item">
+      <div class="shared-icon" style="background:rgba(124,106,247,.1)">📊</div>
+      <div class="shared-info">
+        <div class="shared-name">Experiment Data Drive</div>
+        <div class="shared-meta">Google Drive linked · 4.2 GB</div>
+      </div>
+      <div class="avatar-stack">
+        <div class="mini-av" style="background:linear-gradient(135deg,#00d4aa,#0099ff)">AK</div>
+        <div class="mini-av" style="background:linear-gradient(135deg,#7c6af7,#0099ff)">MC</div>
+      </div>
+    </div>
+
+    <div style="margin-top:14px">
+      <button class="btn btn-secondary" onclick="showToast('Invite link copied to clipboard!')">➕ Invite Team Member</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="nav">
+  <div class="nav-item active" onclick="nav('home')" id="nav-home">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    Home
+  </div>
+  <div class="nav-item" onclick="nav('protocols')" id="nav-protocols">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+    Protocols
+  </div>
+  <div class="nav-item" onclick="nav('calc')" id="nav-calc">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="16" y1="14" x2="16" y2="18"/><line x1="16" y1="10" x2="16" y2="10"/><line x1="12" y1="10" x2="12" y2="18"/><line x1="8" y1="10" x2="8" y2="10"/><line x1="8" y1="14" x2="8" y2="18"/></svg>
+    Calc
+  </div>
+  <div class="nav-item" onclick="nav('samples')" id="nav-samples">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 2v8L4.72 20.55A1 1 0 0 0 5.64 22h12.72a1 1 0 0 0 .92-1.45L14 10V2"/><line x1="8.5" y1="2" x2="15.5" y2="2"/></svg>
+    Samples
+  </div>
+  <div class="nav-item" onclick="nav('scan')" id="nav-scan">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg>
+    Scan
+  </div>
+  <div class="nav-item" onclick="nav('team')" id="nav-team">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    Team
+  </div>
+</nav>
+
+<!-- PROTOCOL DETAIL PANEL -->
+<div class="detail-screen" id="proto-detail">
+  <div class="detail-header">
+    <div class="back-btn" onclick="closeDetail()">←</div>
+    <div class="detail-title" id="detail-title">Protocol</div>
+    <div style="display:flex;gap:8px">
+      <div style="width:32px;height:32px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px" onclick="showToast('Protocol shared with team!')">↗</div>
+    </div>
+  </div>
+  <div class="detail-body" id="detail-body"></div>
+</div>
+
+<!-- ADD SAMPLE MODAL -->
+<div class="modal-overlay" id="sample-modal" onclick="if(event.target===this)closeSampleModal()">
+  <div class="modal">
+    <div class="modal-title">
+      Add New Sample
+      <span class="modal-close" onclick="closeSampleModal()">✕</span>
+    </div>
+    <div class="field-row">
+      <div class="field-label">Sample ID</div>
+      <input class="field-input" id="new-id" type="text" placeholder="SMP-062" value="SMP-062">
+    </div>
+    <div class="field-row">
+      <div class="field-label">Name</div>
+      <input class="field-input" id="new-name" type="text" placeholder="Sample description">
+    </div>
+    <div class="field-row">
+      <div class="field-label">Type</div>
+      <select class="field-input" id="new-type" style="width:100%">
+        <option>Cell lysate</option>
+        <option>Tissue biopsy</option>
+        <option>Blood serum</option>
+        <option>Plasmid DNA</option>
+        <option>Protein extract</option>
+        <option>RNA extract</option>
+        <option>Other</option>
+      </select>
+    </div>
+    <div class="field-row">
+      <div class="field-label">Location</div>
+      <input class="field-input" id="new-loc" type="text" placeholder="−80°C Box 3, Rack A">
+    </div>
+    <div style="margin-top:14px">
+      <button class="btn btn-primary" onclick="addSample()">Add Sample</button>
+    </div>
+  </div>
+</div>
+
+<!-- FAB (samples screen) -->
+<button class="fab" id="fab-btn" style="display:none" onclick="openSampleModal()">+</button>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════════
+const PROTOCOLS = [
+  { id: 1, title: 'Western Blot', cat: 'protein', icon: '🧬', color: '#00d4aa', tag: 'Protein', time: '6-8h', desc: 'Standard SDS-PAGE and immunoblot protocol for protein detection using antibodies.', steps: [
+    { title: 'Sample Preparation', detail: 'Lyse cells in RIPA buffer with protease inhibitors. Centrifuge at 14,000 × g for 15 min at 4°C. Collect supernatant and quantify protein with Bradford assay.', note: '⚠ Keep samples on ice throughout. Do not exceed 50 μg protein per lane.' },
+    { title: 'Gel Electrophoresis', detail: 'Prepare 10–12% SDS-PAGE gel. Load samples and run at 80V through stacking gel, then 120V through resolving gel (approx. 90 min). Use prestained ladder for size reference.' },
+    { title: 'Transfer', detail: 'Transfer proteins to PVDF membrane (pre-activated in methanol) at 100V for 1h (wet transfer) or 25V for 30 min (semi-dry). Verify transfer with Ponceau S staining.' },
+    { title: 'Blocking', detail: 'Block membrane in 5% non-fat dry milk in TBST for 1h at room temperature on a rocker. Rinse 3× with TBST for 5 min.', note: '⚠ Use BSA blocking instead of milk for phospho-specific antibodies.' },
+    { title: 'Primary Antibody', detail: 'Incubate with primary antibody (diluted per datasheet) in blocking buffer overnight at 4°C. Wash 3× with TBST for 10 min each.' },
+    { title: 'Secondary Antibody & Detection', detail: 'Incubate with HRP-conjugated secondary antibody (1:5000) in blocking buffer for 1h at RT. Wash 3× TBST. Apply ECL substrate and expose on film or imager.' }
+  ]},
+  { id: 2, title: 'Cell Culture — HEK293T', cat: 'cell', icon: '🔬', color: '#0099ff', tag: 'Cell Biology', time: '2-3 days', desc: 'Standard maintenance and subculture protocol for HEK293T cells.', steps: [
+    { title: 'Media Preparation', detail: 'Prepare DMEM supplemented with 10% FBS, 1% Pen-Strep, and 1% L-Glutamine. Filter-sterilize and warm to 37°C before use.' },
+    { title: 'Passage', detail: 'When cells reach 80–90% confluency, aspirate media. Wash once with 1× PBS. Add 0.25% Trypsin-EDTA and incubate 3-5 min at 37°C.', note: '⚠ Do not over-trypsinize. HEK293T cells detach quickly.' },
+    { title: 'Neutralize & Centrifuge', detail: 'Add 3× volume of complete media to neutralize trypsin. Transfer to 15 mL tube and centrifuge at 300 × g for 5 min.' },
+    { title: 'Reseeding', detail: 'Aspirate supernatant, resuspend in fresh media. Count using hemocytometer. Seed at 1:5 to 1:10 split ratio into new flask. Incubate at 37°C, 5% CO₂.' }
+  ]},
+  { id: 3, title: 'RNA Extraction (TRIzol)', cat: 'molecular', icon: '🧫', color: '#7c6af7', tag: 'Molecular', time: '2-3h', desc: 'Total RNA isolation from cultured cells using TRIzol reagent.', steps: [
+    { title: 'Cell Lysis', detail: 'Aspirate media. Add 1 mL TRIzol per 10 cm² dish. Pipette up and down to lyse. Transfer to 1.5 mL Eppendorf. Incubate 5 min at RT.', note: '⚠ Perform in fume hood. TRIzol contains phenol — use gloves and eye protection.' },
+    { title: 'Phase Separation', detail: 'Add 0.2 mL chloroform per 1 mL TRIzol. Shake vigorously 15 sec. Incubate RT for 2-3 min. Centrifuge at 12,000 × g, 15 min, 4°C.' },
+    { title: 'RNA Precipitation', detail: 'Transfer aqueous (upper) phase to new tube. Add 0.5 mL isopropanol. Mix. Incubate −20°C for 30 min (or RT for 10 min). Centrifuge 12,000 × g, 10 min, 4°C.' },
+    { title: 'Washing & Elution', detail: 'Remove supernatant. Wash pellet with 75% ethanol (1 mL). Vortex briefly. Centrifuge 7,500 × g for 5 min. Air-dry pellet 5-10 min. Resuspend in RNase-free H₂O. Quantify on Nanodrop.' }
+  ]},
+  { id: 4, title: 'Immunofluorescence Staining', cat: 'imaging', icon: '✨', color: '#f59e0b', tag: 'Imaging', time: '2 days', desc: 'Fluorescence microscopy protocol for intracellular protein localization in fixed cells.', steps: [
+    { title: 'Fixation', detail: 'Wash cells twice with PBS. Fix in 4% paraformaldehyde/PBS for 15 min at RT. Wash 3× PBS, 5 min each.', note: '⚠ PFA is toxic. Handle in fume hood with gloves.' },
+    { title: 'Permeabilization', detail: 'Permeabilize with 0.1% Triton X-100 in PBS for 10 min. Wash 3× PBS.' },
+    { title: 'Blocking', detail: 'Block with 5% normal serum + 1% BSA in PBS for 1h at RT in humid chamber.' },
+    { title: 'Primary Antibody', detail: 'Incubate with primary antibody overnight at 4°C. Dilute per datasheet in blocking buffer. Wash 3× PBS, 5 min each.' },
+    { title: 'Secondary & Counterstain', detail: 'Apply fluorophore-conjugated secondary antibody (1:500) for 1h at RT in dark. Add DAPI (1 μg/mL) for 5 min. Wash 3× PBS. Mount coverslip with antifade reagent.' }
+  ]},
+  { id: 5, title: 'ELISA (Sandwich)', cat: 'protein', icon: '🔭', color: '#22c55e', tag: 'Protein', time: '2 days', desc: 'Sandwich ELISA for quantitative detection of proteins in cell culture supernatant or serum.', steps: [
+    { title: 'Coating', detail: 'Coat 96-well plate with capture antibody (2–4 μg/mL) in coating buffer. 100 μL/well. Incubate overnight at 4°C. Wash 3× PBST.' },
+    { title: 'Blocking', detail: 'Block with 1–3% BSA in PBS, 200 μL/well, 2h at RT. Wash 3× PBST.' },
+    { title: 'Sample & Standard', detail: 'Add standards and samples in duplicate. Incubate 2h at RT. Wash 5× PBST.' },
+    { title: 'Detection', detail: 'Add detection antibody-HRP conjugate. Incubate 1h at RT. Wash 5× PBST. Add TMB substrate. Stop with H₂SO₄ when blue turns yellow. Read absorbance at 450 nm.' }
+  ]},
+  { id: 6, title: 'PCR / qPCR', cat: 'molecular', icon: '🧬', color: '#ef4444', tag: 'Molecular', time: '3-4h', desc: 'Standard PCR and quantitative real-time PCR protocol for gene expression analysis.', steps: [
+    { title: 'cDNA Synthesis', detail: 'Use 1 μg total RNA per reaction. Add random hexamers and dNTPs, heat to 65°C for 5 min, snap-cool. Add reverse transcriptase buffer, enzyme, and RNase inhibitor. 25°C 5 min → 42°C 50 min → 70°C 15 min.' },
+    { title: 'qPCR Setup', detail: 'Prepare master mix: 5 μL SYBR Green (2×), 0.5 μL forward primer (10 μM), 0.5 μL reverse primer, 1 μL cDNA, 3 μL H₂O per reaction. Load in triplicate.' },
+    { title: 'Thermocycler Program', detail: 'Initial denaturation: 95°C 10 min. 40 cycles of: 95°C 15 sec → 60°C 30 sec → 72°C 30 sec. Melt curve: 65–95°C +0.5°C/step.', note: '⚠ Always include housekeeping gene (GAPDH/β-actin) and no-template control.' },
+    { title: 'Analysis', detail: 'Calculate ΔΔCt values normalized to reference gene. Fold change = 2^(−ΔΔCt). Include efficiency correction for accurate quantification.' }
+  ]},
+];
+
+const SAMPLES_DATA = [
+  { id: 'SMP-001', name: 'HeLa Cell Lysate', type: 'Cell lysate', location: '−80°C Box 1, A1', status: 'active', owner: 'AK', date: '2025-11-01' },
+  { id: 'SMP-002', name: 'MCF-7 Nuclear Extract', type: 'Cell lysate', location: '−80°C Box 1, A2', status: 'active', owner: 'MC', date: '2025-11-03' },
+  { id: 'SMP-003', name: 'Breast Biopsy #14', type: 'Tissue biopsy', location: '−80°C Box 2, B1', status: 'frozen', owner: 'AK', date: '2025-10-12' },
+  { id: 'SMP-004', name: 'Patient Serum PS-007', type: 'Blood serum', location: '−20°C Box 1, C4', status: 'warn', owner: 'JR', date: '2025-09-30' },
+  { id: 'SMP-005', name: 'pCMV-GFP Plasmid', type: 'Plasmid DNA', location: '−20°C Box 1, D1', status: 'active', owner: 'PT', date: '2025-11-10' },
+  { id: 'SMP-006', name: 'ERK1/2 Antibody Stock', type: 'Protein extract', location: '4°C Fridge 2', status: 'active', owner: 'MC', date: '2025-11-08' },
+  { id: 'SMP-007', name: 'U87-MG Total RNA', type: 'RNA extract', location: '−80°C Box 3, A1', status: 'frozen', owner: 'SL', date: '2025-10-28' },
+  { id: 'SMP-041', name: 'A549 Protein Lysate', type: 'Cell lysate', location: '−80°C Box 4, A1', status: 'warn', owner: 'AK', date: '2025-10-01' },
+  { id: 'SMP-043', name: 'Mouse Lung Tissue', type: 'Tissue biopsy', location: '−80°C Box 4, B2', status: 'warn', owner: 'JR', date: '2025-10-02' },
+  { id: 'SMP-047', name: 'Patient Serum PS-012', type: 'Blood serum', location: '−20°C Box 2, D3', status: 'warn', owner: 'AK', date: '2025-10-02' },
+];
+
+// ══════════════════════════════════════════════
+// NAV
+// ══════════════════════════════════════════════
+let currentScreen = 'home';
+function nav(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+  document.getElementById('nav-' + id).classList.add('active');
+  currentScreen = id;
+  document.getElementById('fab-btn').style.display = (id === 'samples') ? 'flex' : 'none';
+  if (id === 'protocols') renderProtocols(PROTOCOLS);
+  if (id === 'samples') renderSamples(SAMPLES_DATA);
+  if (id === 'calc') { document.getElementById('calc-home').style.display = 'block'; document.getElementById('calc-panel').style.display = 'none'; }
+  window.scrollTo(0, 0);
+}
+nav('home');
+
+// ══════════════════════════════════════════════
+// PROTOCOLS
+// ══════════════════════════════════════════════
+let currentProtoTab = 'all';
+function renderProtocols(list) {
+  const filtered = currentProtoTab === 'all' ? list : list.filter(p => p.cat === currentProtoTab);
+  const search = document.getElementById('proto-search').value.toLowerCase();
+  const shown = filtered.filter(p => !search || p.title.toLowerCase().includes(search) || p.desc.toLowerCase().includes(search));
+  document.getElementById('proto-list').innerHTML = shown.map(p => `
+    <div class="protocol-card" onclick="openProtocol(${p.id})">
+      <div class="proto-icon" style="background:${p.color}22">${p.icon}</div>
+      <div class="proto-info">
+        <div class="proto-title">${p.title}</div>
+        <div class="proto-meta">
+          <span class="proto-tag ${p.cat === 'protein' ? 'green' : p.cat === 'cell' ? 'blue' : p.cat === 'imaging' ? '' : 'purple'}">${p.tag}</span>
+          <span style="font-size:10px;color:var(--text3);font-family:var(--mono)">⏱ ${p.time}</span>
+        </div>
+        <div class="proto-desc">${p.desc}</div>
+      </div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2" style="flex-shrink:0"><path d="m9 18 6-6-6-6"/></svg>
+    </div>
+  `).join('');
+}
+function setProtoTab(el, cat) {
+  document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  currentProtoTab = cat;
+  renderProtocols(PROTOCOLS);
+}
+function filterProtocols(q) { renderProtocols(PROTOCOLS); }
+function openProtocol(id) {
+  const p = PROTOCOLS.find(x => x.id === id);
+  document.getElementById('detail-title').textContent = p.title;
+  document.getElementById('detail-body').innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">
+      <div style="width:50px;height:50px;border-radius:12px;background:${p.color}22;display:flex;align-items:center;justify-content:center;font-size:24px">${p.icon}</div>
+      <div>
+        <div style="font-size:17px;font-weight:600;margin-bottom:4px">${p.title}</div>
+        <div style="display:flex;gap:8px">
+          <span class="proto-tag" style="background:${p.color}22;color:${p.color}">${p.tag}</span>
+          <span style="font-size:10px;color:var(--text3);font-family:var(--mono)">⏱ ${p.time}</span>
+        </div>
+      </div>
+    </div>
+    <div style="font-size:13px;color:var(--text3);line-height:1.6;margin-bottom:20px;padding:12px;background:var(--surface2);border-radius:10px">${p.desc}</div>
+    <div style="font-family:var(--mono);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);margin-bottom:14px">Protocol Steps</div>
+    ${p.steps.map((s, i) => `
+      <div class="step-item">
+        <div class="step-num">${i+1}</div>
+        <div class="step-content">
+          <div class="step-title">${s.title}</div>
+          <div class="step-detail">${s.detail}</div>
+          ${s.note ? `<div class="step-note">${s.note}</div>` : ''}
+        </div>
+      </div>
+    `).join('')}
+    <div style="margin-top:20px;display:flex;gap:8px">
+      <button class="btn btn-primary" style="flex:1" onclick="showToast('Protocol started! Timer running...')">▶ Start Protocol</button>
+      <button class="btn btn-secondary" style="width:80px" onclick="showToast('Protocol duplicated to My Protocols!')">Copy</button>
+    </div>
+  `;
+  document.getElementById('proto-detail').classList.add('open');
+}
+function closeDetail() {
+  document.getElementById('proto-detail').classList.remove('open');
+}
+
+// ══════════════════════════════════════════════
+// CALCULATIONS
+// ══════════════════════════════════════════════
+function showCalc(type) {
+  document.getElementById('calc-home').style.display = 'none';
+  const panel = document.getElementById('calc-panel');
+  panel.style.display = 'block';
+  const configs = {
+    dilution: {
+      title: '💧 Dilution Calculator',
+      html: `
+        <div class="field-row"><div class="field-label">C₁ (Stock)</div><input class="field-input" id="c1" type="number" placeholder="100"><select class="field-select" id="c1u"><option>mM</option><option>μM</option><option>M</option><option>mg/mL</option></select></div>
+        <div class="field-row"><div class="field-label">V₁ (Stock)</div><input class="field-input" id="v1" type="number" placeholder="solve"></div>
+        <div class="field-row"><div class="field-label">C₂ (Final)</div><input class="field-input" id="c2" type="number" placeholder="10"><select class="field-select" id="c2u"><option>mM</option><option>μM</option><option>M</option><option>mg/mL</option></select></div>
+        <div class="field-row"><div class="field-label">V₂ (Final)</div><input class="field-input" id="v2" type="number" placeholder="1000"><select class="field-select" id="v2u"><option>μL</option><option>mL</option><option>L</option></select></div>
+        <button class="btn btn-primary" onclick="calcDilution()">Calculate V₁</button>
+        <div id="dil-result"></div>
+      `
+    },
+    molar: {
+      title: '⚖️ Molarity Calculator',
+      html: `
+        <div class="field-row"><div class="field-label">Mass (g)</div><input class="field-input" id="mass" type="number" placeholder="0.584"></div>
+        <div class="field-row"><div class="field-label">MW (g/mol)</div><input class="field-input" id="mw" type="number" placeholder="58.44"></div>
+        <div class="field-row"><div class="field-label">Volume (L)</div><input class="field-input" id="vol" type="number" placeholder="0.1"></div>
+        <button class="btn btn-primary" onclick="calcMolarity()">Calculate Molarity</button>
+        <div id="mol-result"></div>
+      `
+    },
+    temp: {
+      title: '🌡️ Temperature Converter',
+      html: `
+        <div class="field-row"><div class="field-label">Input Temp</div><input class="field-input" id="temp-in" type="number" placeholder="37" oninput="calcTemp()"><select class="field-select" id="temp-from" onchange="calcTemp()"><option>°C</option><option>°F</option><option>K</option></select></div>
+        <div id="temp-result" style="margin-top:10px"></div>
+      `
+    },
+    centrifuge: {
+      title: '⭕ Centrifuge Converter',
+      html: `
+        <div class="field-row"><div class="field-label">RPM</div><input class="field-input" id="rpm" type="number" placeholder="14000" oninput="calcRCF()"></div>
+        <div class="field-row"><div class="field-label">Radius (cm)</div><input class="field-input" id="radius" type="number" placeholder="9.0" oninput="calcRCF()"></div>
+        <div id="rcf-result" style="margin-top:10px"></div>
+      `
+    },
+    od: {
+      title: '🔬 OD600 Cell Density',
+      html: `
+        <div class="field-row"><div class="field-label">OD₆₀₀</div><input class="field-input" id="od" type="number" placeholder="0.8" step="0.01" oninput="calcOD()"></div>
+        <div class="field-row"><div class="field-label">Organism</div>
+          <select class="field-select" id="od-org" style="width:100%" onchange="calcOD()">
+            <option value="8e8">E. coli (~8×10⁸)</option>
+            <option value="3e7">Yeast (~3×10⁷)</option>
+            <option value="1e6">Mammalian (~1×10⁶)</option>
+          </select>
+        </div>
+        <div id="od-result" style="margin-top:10px"></div>
+      `
+    },
+    buffer: {
+      title: '🧴 Buffer Recipe Generator',
+      html: `
+        <div class="field-row"><div class="field-label">Buffer Type</div>
+          <select class="field-input" id="buf-type" style="width:100%" onchange="renderBufferRecipe()">
+            <option value="pbs">1× PBS</option>
+            <option value="tbs">1× TBS</option>
+            <option value="hepes">HEPES buffer</option>
+            <option value="tae">1× TAE</option>
+            <option value="ripa">RIPA Lysis Buffer</option>
+          </select>
+        </div>
+        <div class="field-row"><div class="field-label">Volume</div><input class="field-input" id="buf-vol" type="number" value="1000" oninput="renderBufferRecipe()"><div class="field-label" style="width:30px">mL</div></div>
+        <div id="buf-recipe"></div>
+      `
+    },
+    conc: {
+      title: '🔄 Concentration Converter',
+      html: `
+        <div class="field-row"><div class="field-label">Value</div><input class="field-input" id="conc-val" type="number" placeholder="1" oninput="calcConc()"><select class="field-select" id="conc-from" onchange="calcConc()"><option>M</option><option>mM</option><option>μM</option><option>nM</option></select></div>
+        <div class="field-row"><div class="field-label">MW (g/mol)</div><input class="field-input" id="conc-mw" type="number" placeholder="58.44" oninput="calcConc()"></div>
+        <div id="conc-result" style="margin-top:10px"></div>
+      `
+    },
+    pcr: {
+      title: '🧫 PCR Master Mix Setup',
+      html: `
+        <div class="field-row"><div class="field-label">Reactions</div><input class="field-input" id="pcr-n" type="number" value="10" oninput="calcPCR()"></div>
+        <div class="field-row"><div class="field-label">Rxn vol (μL)</div><input class="field-input" id="pcr-vol" type="number" value="25" oninput="calcPCR()"></div>
+        <div id="pcr-result" style="margin-top:10px"></div>
+      `
+    }
+  };
+  const c = configs[type] || { title: '🔬 Calculator', html: '<p style="color:var(--text3);font-size:13px">Select a calculator from the list.</p>' };
+  panel.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <div class="back-btn" onclick="document.getElementById('calc-home').style.display='block';document.getElementById('calc-panel').style.display='none'">←</div>
+      <div style="font-size:15px;font-weight:600">${c.title}</div>
+    </div>
+    <div class="calc-panel">${c.html}</div>
+  `;
+  if (type === 'buffer') renderBufferRecipe();
+  if (type === 'temp') { /* no oninput auto */ }
+  if (type === 'pcr') calcPCR();
+}
+
+function calcDilution() {
+  const c1 = parseFloat(document.getElementById('c1').value);
+  const c2 = parseFloat(document.getElementById('c2').value);
+  const v2 = parseFloat(document.getElementById('v2').value);
+  if (!c1 || !c2 || !v2) return;
+  const v1 = (c2 * v2) / c1;
+  const diluent = v2 - v1;
+  document.getElementById('dil-result').innerHTML = `
+    <div class="result-box">
+      <div class="result-val">${v1.toFixed(2)} μL</div>
+      <div class="result-label">Add ${v1.toFixed(2)} μL stock + ${diluent.toFixed(2)} μL diluent</div>
+    </div>`;
+}
+
+function calcMolarity() {
+  const mass = parseFloat(document.getElementById('mass').value);
+  const mw = parseFloat(document.getElementById('mw').value);
+  const vol = parseFloat(document.getElementById('vol').value);
+  if (!mass || !mw || !vol) return;
+  const M = (mass / mw) / vol;
+  document.getElementById('mol-result').innerHTML = `
+    <div class="result-box">
+      <div class="result-val">${M.toFixed(4)} M</div>
+      <div class="result-label">${(M*1000).toFixed(2)} mM · ${(M*1e6).toFixed(2)} μM</div>
+    </div>`;
+}
+
+function calcTemp() {
+  const v = parseFloat(document.getElementById('temp-in').value);
+  const from = document.getElementById('temp-from').value;
+  if (isNaN(v)) return;
+  let C, F, K;
+  if (from === '°C') { C = v; F = v*9/5+32; K = v+273.15; }
+  else if (from === '°F') { C = (v-32)*5/9; F = v; K = C+273.15; }
+  else { K = v; C = v-273.15; F = C*9/5+32; }
+  document.getElementById('temp-result').innerHTML = `
+    <div class="result-box">
+      <div class="result-val">${C.toFixed(2)}°C</div>
+      <div class="result-label">${F.toFixed(2)}°F · ${K.toFixed(2)} K</div>
+    </div>`;
+}
+
+function calcRCF() {
+  const rpm = parseFloat(document.getElementById('rpm').value);
+  const r = parseFloat(document.getElementById('radius').value);
+  if (!rpm || !r) return;
+  const rcf = 1.118e-5 * r * rpm * rpm;
+  document.getElementById('rcf-result').innerHTML = `
+    <div class="result-box">
+      <div class="result-val">${Math.round(rcf).toLocaleString()} × g</div>
+      <div class="result-label">${rpm.toLocaleString()} RPM at r = ${r} cm</div>
+    </div>`;
+}
+
+function calcOD() {
+  const od = parseFloat(document.getElementById('od').value);
+  const factor = parseFloat(document.getElementById('od-org').value);
+  if (!od) return;
+  const cells = od * factor;
+  const fmt = cells >= 1e9 ? (cells/1e9).toFixed(2)+'×10⁹' : (cells/1e8).toFixed(2)+'×10⁸';
+  document.getElementById('od-result').innerHTML = `
+    <div class="result-box">
+      <div class="result-val">${fmt}</div>
+      <div class="result-label">cells/mL at OD₆₀₀ = ${od}</div>
+    </div>`;
+}
+
+function calcConc() {
+  const v = parseFloat(document.getElementById('conc-val').value);
+  const from = document.getElementById('conc-from').value;
+  const mw = parseFloat(document.getElementById('conc-mw').value);
+  if (!v || !mw) return;
+  const factors = { M: 1, mM: 1e-3, μM: 1e-6, nM: 1e-9 };
+  const M = v * factors[from];
+  const mgmL = M * mw;
+  document.getElementById('conc-result').innerHTML = `
+    <div class="result-box">
+      <div class="result-val">${mgmL >= 1 ? mgmL.toFixed(3) : (mgmL*1000).toFixed(3)} ${mgmL >= 1 ? 'mg/mL' : 'μg/mL'}</div>
+      <div class="result-label">${M.toFixed(4)} M · ${(M*1e3).toFixed(4)} mM · ${(M*1e6).toFixed(2)} μM</div>
+    </div>`;
+}
+
+function calcPCR() {
+  const n = parseInt(document.getElementById('pcr-n').value) || 10;
+  const vol = parseInt(document.getElementById('pcr-vol').value) || 25;
+  const extra = 1.1;
+  const rows = [
+    ['2× Master Mix', vol/2, n*vol/2*extra],
+    ['Forward Primer (10μM)', vol*0.02, n*vol*0.02*extra],
+    ['Reverse Primer (10μM)', vol*0.02, n*vol*0.02*extra],
+    ['Template DNA', vol*0.04, '—'],
+    ['Nuclease-free H₂O', vol*0.4, n*vol*0.4*extra],
+  ];
+  document.getElementById('pcr-result').innerHTML = `
+    <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:6px">Per ${n} reactions (${vol} μL each) + 10% extra</div>
+    <div class="recipe-steps">
+      ${rows.map((r,i) => `<div class="recipe-step"><span class="rs-num">${i+1}</span><span class="rs-text">${r[0]}: <b style="color:var(--accent)">${typeof r[2]==='number'?r[2].toFixed(1):r[2]} μL</b> <span style="color:var(--text3)">(${r[1]} μL/rxn)</span></span></div>`).join('')}
+    </div>
+  `;
+}
+
+const BUFFER_RECIPES = {
+  pbs: { name: '1× PBS', ingredients: [
+    { name: 'NaCl (MW 58.44)', amount: vol => (8*vol/1000).toFixed(3)+' g' },
+    { name: 'KCl (MW 74.55)', amount: vol => (0.2*vol/1000).toFixed(4)+' g' },
+    { name: 'Na₂HPO₄ (MW 141.96)', amount: vol => (1.44*vol/1000).toFixed(4)+' g' },
+    { name: 'KH₂PO₄ (MW 136.09)', amount: vol => (0.24*vol/1000).toFixed(4)+' g' },
+    { name: 'dH₂O to final volume', amount: vol => vol+' mL' }
+  ], notes: 'Dissolve salts, adjust pH to 7.4 with HCl. Autoclave at 121°C for 20 min.' },
+  tbs: { name: '1× TBS (pH 7.6)', ingredients: [
+    { name: 'Tris base (MW 121.14)', amount: vol => (2.42*vol/1000).toFixed(3)+' g' },
+    { name: 'NaCl (MW 58.44)', amount: vol => (8*vol/1000).toFixed(3)+' g' },
+    { name: 'dH₂O to final volume', amount: vol => vol+' mL' }
+  ], notes: 'Dissolve, adjust pH to 7.6 with HCl. Filter-sterilize.' },
+  hepes: { name: 'HEPES Buffer (25mM, pH 7.4)', ingredients: [
+    { name: 'HEPES free acid (MW 238.3)', amount: vol => (5.96*vol/1000).toFixed(3)+' g' },
+    { name: 'NaCl (MW 58.44)', amount: vol => (8.76*vol/1000).toFixed(3)+' g' },
+    { name: 'dH₂O to final volume', amount: vol => vol+' mL' }
+  ], notes: 'Dissolve and adjust pH to 7.4 with NaOH. Filter-sterilize (0.2 μm).' },
+  tae: { name: '1× TAE (electrophoresis)', ingredients: [
+    { name: 'Tris base (MW 121.14)', amount: vol => (4.84*vol/1000).toFixed(3)+' g' },
+    { name: 'Acetic acid (glacial)', amount: vol => (1.14*vol/1000).toFixed(3)+' mL' },
+    { name: '0.5M EDTA (pH 8.0)', amount: vol => (2*vol/1000).toFixed(3)+' mL' },
+    { name: 'dH₂O to final volume', amount: vol => vol+' mL' }
+  ], notes: 'Mix and verify conductivity. Store at RT.' },
+  ripa: { name: 'RIPA Lysis Buffer', ingredients: [
+    { name: '1M Tris-HCl pH 8.0', amount: vol => (50*vol/1000).toFixed(2)+' μL' },
+    { name: '5M NaCl', amount: vol => (30*vol/1000).toFixed(2)+' μL' },
+    { name: '10% SDS', amount: vol => (1*vol/1000).toFixed(3)+' mL' },
+    { name: '10% Na-Deoxycholate', amount: vol => (5*vol/1000).toFixed(3)+' mL' },
+    { name: '10% Triton X-100', amount: vol => (10*vol/1000).toFixed(3)+' mL' },
+    { name: 'dH₂O to final volume', amount: vol => vol+' mL' }
+  ], notes: '⚠ Add protease inhibitors fresh before use. Keep on ice.' },
+};
+
+function renderBufferRecipe() {
+  const type = document.getElementById('buf-type').value;
+  const vol = parseFloat(document.getElementById('buf-vol').value) || 1000;
+  const r = BUFFER_RECIPES[type];
+  document.getElementById('buf-recipe').innerHTML = `
+    <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin:10px 0 6px;text-transform:uppercase;letter-spacing:1px">Recipe for ${vol} mL</div>
+    <div class="recipe-steps">
+      ${r.ingredients.map((ing, i) => `<div class="recipe-step"><span class="rs-num">${i+1}</span><span class="rs-text">${ing.name}: <b style="color:var(--accent)">${ing.amount(vol)}</b></span></div>`).join('')}
+    </div>
+    <div class="step-note" style="margin-top:10px">${r.notes}</div>
+  `;
+}
+
+// ══════════════════════════════════════════════
+// SAMPLES
+// ══════════════════════════════════════════════
+let sampleData = [...SAMPLES_DATA];
+function renderSamples(list) {
+  const search = document.getElementById('sample-search')?.value?.toLowerCase() || '';
+  const shown = list.filter(s => !search || s.id.toLowerCase().includes(search) || s.name.toLowerCase().includes(search) || s.type.toLowerCase().includes(search));
+  const statusMap = { active: ['status-active', 'Active'], frozen: ['status-frozen', 'Frozen'], warn: ['status-warn', 'Expiring'], used: ['status-used', 'Used'] };
+  document.getElementById('sample-list').innerHTML = shown.map(s => {
+    const [cls, lbl] = statusMap[s.status] || statusMap.active;
+    return `<div class="sample-item" onclick="showToast('Sample ${s.id}: ${s.name}')">
+      <div class="sample-id">${s.id}</div>
+      <div class="sample-info">
+        <div class="sample-name">${s.name}</div>
+        <div class="sample-meta">${s.type} · ${s.location}</div>
+      </div>
+      <div class="sample-status ${cls}">${lbl}</div>
+    </div>`;
+  }).join('');
+}
+function filterSamples(q) { renderSamples(sampleData); }
+
+function openSampleModal() {
+  document.getElementById('sample-modal').classList.add('open');
+  // auto-increment ID
+  const nextNum = sampleData.length + 1;
+  document.getElementById('new-id').value = 'SMP-0' + String(nextNum + 61).padStart(2, '0');
+}
+function closeSampleModal() {
+  document.getElementById('sample-modal').classList.remove('open');
+}
+function addSample() {
+  const id = document.getElementById('new-id').value.trim();
+  const name = document.getElementById('new-name').value.trim();
+  const type = document.getElementById('new-type').value;
+  const loc = document.getElementById('new-loc').value.trim();
+  if (!name) { showToast('Please enter a sample name'); return; }
+  sampleData.unshift({ id: id || 'SMP-NEW', name, type, location: loc || 'Unknown', status: 'active', owner: 'AK', date: new Date().toISOString().split('T')[0] });
+  renderSamples(sampleData);
+  closeSampleModal();
+  showToast(`✓ Sample ${id} registered!`);
+  // update stats
+  document.querySelector('#screen-samples .s-val').textContent = sampleData.length;
+}
+
+// ══════════════════════════════════════════════
+// AI / SCAN
+// ══════════════════════════════════════════════
+function triggerUpload() {
+  document.getElementById('file-input').click();
+}
+async function handleFileUpload(input) {
+  if (!input.files.length) return;
+  const f = input.files[0];
+  addMsg('user', `📎 Uploaded: ${f.name}`);
+  addMsg('ai', null, true);
+  const reader = new FileReader();
+  reader.onload = async () => {
+    const base64 = reader.result.split(',')[1];
+    const mediaType = f.type || 'image/jpeg';
+    try {
+      const resp = await callClaude([{
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
+          { type: 'text', text: 'This is an uploaded laboratory protocol image. Please analyze it and convert it into a well-structured digital protocol with numbered steps, any reagents needed, timing, and safety notes. Format it clearly for use in a biomedical research lab.' }
+        ]
+      }]);
+      replaceTyping(resp);
+    } catch(e) {
+      replaceTyping('Sorry, I had trouble reading that image. Please try again or describe the protocol in text.');
+    }
+  };
+  reader.readAsDataURL(f);
+}
+
+async function sendAI() {
+  const input = document.getElementById('ai-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  addMsg('user', msg);
+  addMsg('ai', null, true);
+  try {
+    const resp = await callClaude([{ role: 'user', content: msg }], 'You are LabOS, an expert biomedical research assistant. Help with lab protocols, buffer preparations, troubleshooting experiments, scientific calculations, and general research questions. Be concise and practical. When providing protocols, use numbered steps. Use scientific notation where appropriate.');
+    replaceTyping(resp);
+  } catch(e) {
+    replaceTyping('Connection error. Please check your network and try again.');
+  }
+}
+
+function quickPrompt(text) {
+  document.getElementById('ai-input').value = text;
+  sendAI();
+  // scroll to chat
+  document.getElementById('ai-chat-panel').scrollIntoView({ behavior: 'smooth' });
+}
+
+async function callClaude(messages, system) {
+  const body = {
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 1000,
+    messages
+  };
+  if (system) body.system = system;
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  const data = await resp.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.content.map(c => c.text || '').join('');
+}
+
+function addMsg(role, text, typing = false) {
+  const msgs = document.getElementById('ai-messages');
+  const div = document.createElement('div');
+  div.className = 'msg msg-' + role;
+  if (typing) {
+    div.id = 'typing-msg';
+    div.innerHTML = '<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>';
+  } else {
+    div.textContent = text;
+  }
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function replaceTyping(text) {
+  const el = document.getElementById('typing-msg');
+  if (el) { el.removeAttribute('id'); el.textContent = text; }
+  document.getElementById('ai-messages').scrollTop = 9999;
+}
+
+// ══════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════
+let toastTimeout;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
